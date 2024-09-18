@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMS FALCON 7 - Estado dos Relés</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/stock.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: top;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Desativa o scroll */
+        }
+
+        #container {
+            height: 95vh;
+            width: 100%; /* Ajuste a largura para 100% */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+
+    <script>
+        // Function to get parameters from URL
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\\[\]]/g, '\\$&');
+            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            const results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Get 'mac', 'janela', 'token', and 'org' from URL parameters
+        const mac = getParameterByName('mac'); // No default value
+        const janela = getParameterByName('janela') || '24h'; // Default time window
+        const token = getParameterByName('token'); // No default value
+        const org = getParameterByName('org'); // No default value
+
+        // Validate the required parameters (mac, token, org)
+        if (!mac || !token || !org) {
+            alert("Parâmetros obrigatórios não fornecidos (mac, token, org)");
+            throw new Error("Parâmetros obrigatórios não fornecidos.");
+        }
+
+        const url = 'https://us-east-1-1.aws.cloud2.influxdata.com';
+        const bucket = 'BMS';
+
+        async function fetchCurrentAndRelayData() {
+            const fluxQuery2 = `
+                from(bucket: "${bucket}")
+                    |> range(start: -${janela})
+                    |> filter(fn: (r) => r._measurement == "${mac} - Pack")
+                    |> filter(fn: (r) => r._field == "Carrega" or r._field == "Decarrega")
+            `;
+            const response = await fetch(`${url}/api/v2/query?org=${org}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/vnd.flux',
+                    'Accept': 'application/csv'
+                },
+                body: fluxQuery2
+            });
+
+            const text = await response.text();
+            return parseCSVtoJSON(text);
+        }
+
+        function parseCSVtoJSON(csv) {
+            const lines = csv.split('\n');
+            const chargeRelayData = [];
+            const dischargeRelayData = [];
+            const headers = lines[0].split(',');
+
+            for (let i = 1; i < lines.length; i++) {
+                const obj = {};
+                const currentline = lines[i].split(',');
+
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = currentline[j];
+                }
+
+                if (obj._time && obj._value) {
+                    const time = new Date(obj._time).getTime();
+                    const value = parseFloat(obj._value);
+                    if (obj._field === "Carrega") {
+                        chargeRelayData.push([time, value]);
+                    } else if (obj._field === "Decarrega") {
+                        dischargeRelayData.push([time, value]);
+                    }
+                }
+            }
+            return { chargeRelayData, dischargeRelayData };
+        }
+
+        async function createChart() {
+            const colors = Highcharts.getOptions().colors;
+            const relayData = await fetchCurrentAndRelayData();
+
+            Highcharts.setOptions({
+                time: {
+                    timezoneOffset: 180 // UTC-4 em minutos
+                }
+            });
+
+            Highcharts.chart('container', {
+                chart: {
+                    zoomType: 'x',
+                    alignTicks: false
+                },
+                credits: {
+                    enabled: false
+                },
+                title: {
+                    text: 'Estado dos Relés'
+                },
+                xAxis: {
+                    type: 'datetime',
+                },
+                yAxis: [{
+                    title: {
+                        text: 'Estado dos Relés'
+                    },
+                    tickPositions: [0, 1],
+                    labels: {
+                        formatter: function () {
+                            return this.value === 1 ? 'ON' : 'OFF';
+                        }
+                    }
+                }, {
+                    title: {
+                        text: 'Estado dos Relés'
+                    },
+                    opposite: true,
+                    labels: {
+                        enabled: false
+                    }
+                }],
+                tooltip: {
+                    xDateFormat: '%A, %d %b %Y. %H:%M:%S',
+                    shared: false,
+                    useHTML: true,
+                    headerFormat: '<table><tr><th colspan="2">{point.key}</th></tr>',
+                    pointFormat: '<tr><td style="color: {series.color}">{series.name}</td>' +
+                        '<td style="text-align: right"><b>{point.y}</b></td></tr>',
+                    footerFormat: '</table>',
+                    valueDecimals: 2,
+                    backgroundColor: "#333333",
+                    borderradius: 20,
+                    padding: 10,
+                    style: {
+                        color: "white",
+                        fontSize: "14px",
+                        fontWeight: "bold"
+                    }
+                },
+                series: [{
+                    type: 'spline',
+                    name: 'Relé de Carregamento',
+                    color: colors[0 % colors.length],
+                    data: relayData.chargeRelayData,
+                    yAxis: 0,
+                    marker: {
+                        radius: 2 // Tamanho dos pontos
+                    },
+                    tooltip: {
+                        valueDecimals: 0, // Estado dos relés com 0 casas decimais
+                        pointFormatter: function () {
+                            return `<tr><td style="color: ${this.color}">${this.series.name}</td>` +
+                                `<td style="text-align: right"><b>${this.y === 1 ? 'ON' : 'OFF'}</b></td></tr>`;
+                        }
+                    }
+                }, {
+                    type: 'spline',
+                    name: 'Relé de Descarregamento',
+                    color: colors[1 % colors.length],
+                    data: relayData.dischargeRelayData,
+                    yAxis: 0,
+                    marker: {
+                        radius: 2 // Tamanho dos pontos
+                    },
+                    tooltip: {
+                        valueDecimals: 0, // Estado dos relés com 0 casas decimais
+                        pointFormatter: function () {
+                            return `<tr><td style="color: ${this.color}">${this.series.name}</td>` +
+                                `<td style="text-align: right"><b>${this.y === 1 ? 'ON' : 'OFF'}</b></td></tr>`;
+                        }
+                    }
+                }]
+            });
+        }
+
+        createChart();
+    </script>
+</body>
+
+</html>
