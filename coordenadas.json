@@ -1,85 +1,82 @@
-{
-    "listaNobreaks": [
-      {
-        "Nobreak 1": {
-          "Mac Address": "48:27:e2:60:34:a4",
-          "Latitude": -23.54327,
-          "Longitude": -46.59832,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 2": {
-          "Mac Address": "48:27:e2:60:34:64",
-          "Latitude": -23.54335,
-          "Longitude": -46.59811,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 3": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54331,
-          "Longitude": -46.59802,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 4": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54323,
-          "Longitude": -46.59810,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 5": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54305,
-          "Longitude": -46.59830,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 6": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54337,
-          "Longitude": -46.59854,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 7": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54359,
-          "Longitude": -46.59850,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      },
-      {
-        "Nobreak 8": {
-          "Mac Address": "XX:XX:XX:XX:XX:XX",
-          "Latitude": -23.54351,
-          "Longitude": -46.59822,
-          "SSID": "",
-          "Senha": "",
-          "ICC": ""
-        }
-      }
-    ]
+[
+  {
+    "Nobreak 1": {
+      "Mac Address": "48:27:e2:60:34:a4",
+      "Latitude": -23.54327,
+      "Longitude": -46.59832,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 2": {
+      "Mac Address": "48:27:e2:60:34:64",
+      "Latitude": -23.54335,
+      "Longitude": -46.59811,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 3": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54331,
+      "Longitude": -46.59802,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 4": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54323,
+      "Longitude": -46.59810,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 5": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54305,
+      "Longitude": -46.59830,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 6": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54337,
+      "Longitude": -46.59854,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 7": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54359,
+      "Longitude": -46.59850,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
+  },
+  {
+    "Nobreak 8": {
+      "Mac Address": "XX:XX:XX:XX:XX:XX",
+      "Latitude": -23.54351,
+      "Longitude": -46.59822,
+      "SSID": "",
+      "Senha": "",
+      "ICC": ""
+    }
   }
-  
+]
