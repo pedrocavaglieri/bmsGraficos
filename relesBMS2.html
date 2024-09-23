@@ -31,7 +31,7 @@
     <div id="container"></div>
 
     <script>
-        // Function to get parameters from URL
+        // Função para obter parâmetros da URL
         function getParameterByName(name, url = window.location.href) {
             name = name.replace(/[\\[\]]/g, '\\$&');
             const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
@@ -41,13 +41,14 @@
             return decodeURIComponent(results[2].replace(/\+/g, ' '));
         }
 
-        // Get 'mac', 'janela', 'token', and 'org' from URL parameters
-        const mac = getParameterByName('mac'); // No default value
-        const janela = getParameterByName('janela') || '24h'; // Default time window
-        const token = getParameterByName('token'); // No default value
-        const org = getParameterByName('org'); // No default value
+        // Captura os parâmetros da URL
+        const mac = getParameterByName('mac'); // Sem valor padrão
+        const janela = getParameterByName('janela') || '24h'; // Janela de tempo padrão
+        const token = getParameterByName('token'); // Sem valor padrão
+        const org = getParameterByName('org'); // Sem valor padrão
+        const nomePack = getParameterByName('nomePack') || 'Pack Desconhecido'; // Nome do pack de baterias
 
-        // Validate the required parameters (mac, token, org)
+        // Valida os parâmetros obrigatórios (mac, token, org)
         if (!mac || !token || !org) {
             alert("Parâmetros obrigatórios não fornecidos (mac, token, org)");
             throw new Error("Parâmetros obrigatórios não fornecidos.");
@@ -123,7 +124,7 @@
                     enabled: false
                 },
                 title: {
-                    text: 'Estado dos Relés'
+                    text: `Estado dos Relés - ${nomePack}`
                 },
                 xAxis: {
                     type: 'datetime',
