@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMS FALCON 7 - Tensão das Baterias</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/stock.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: top;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Desativa o scroll */
+        }
+
+        #container {
+            height: 95vh;
+            width: 100%; /* Ajuste conforme necessário */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+
+    <script>
+        // Função para obter parâmetros da URL
+        function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\\[\]]/g, '\\$&');
+            const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+            const results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        // Captura os parâmetros da URL
+        const mac = getParameterByName('mac'); // Sem valor padrão
+        const janela = getParameterByName('janela') || '24h'; // Janela de tempo padrão
+        const token = getParameterByName('token'); // Sem valor padrão
+        const org = getParameterByName('org'); // Sem valor padrão
+        const nomePack = getParameterByName('nomePack') || 'Pack Desconhecido'; // Nome do pack de baterias
+
+        // Valida os parâmetros obrigatórios
+        if (!mac || !token || !org) {
+            alert("Parâmetros obrigatórios não fornecidos (mac, token, org)");
+            throw new Error("Parâmetros obrigatórios não fornecidos.");
+        }
+
+        // Verifica se é um pack "Mini"
+        const isMiniPack = nomePack.includes('Mini');
+
+        const url = 'https://us-east-1-1.aws.cloud2.influxdata.com';
+        const bucket = 'BMS';
+
+        async function fetchData(batteryNumber) {
+            const fluxQuery = `
+                from(bucket: "${bucket}")
+                    |> range(start: -${janela})
+                    |> filter(fn: (r) => r._measurement == "${mac} - Baterias")
+                    |> filter(fn: (r) => r._field == "Tensão")
+                    |> filter(fn: (r) => r.Bateria == "${batteryNumber}")
+            `;
+            const response = await fetch(`${url}/api/v2/query?org=${org}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/vnd.flux',
+                    'Accept': 'application/csv'
+                },
+                body: fluxQuery
+            });
+
+            const text = await response.text();
+            return parseCSVtoJSON(text);
+        }
+
+        function parseCSVtoJSON(csv) {
+            const lines = csv.split('\n');
+            const result = [];
+            const headers = lines[0].split(',');
+
+            for (let i = 1; i < lines.length; i++) {
+                const obj = {};
+                const currentline = lines[i].split(',');
+
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = currentline[j];
+                }
+
+                if (obj._time && obj._value) {
+                    const time = new Date(obj._time).getTime();
+                    const value = parseFloat(obj._value);
+                    result.push([time, value]);
+                }
+            }
+            return result;
+        }
+
+        async function createChart() {
+            const colors = Highcharts.getOptions().colors;
+            const seriesDataPromises = [];
+
+            // Determina o número máximo de baterias com base no nome do pack
+            const maxBatteries = isMiniPack ? 4 : 8;
+
+            for (let i = 1; i <= maxBatteries; i++) {
+                // Formata o número da bateria com zero à esquerda se necessário
+                const batteryNumber = i < 10 ? `0${i}` : `${i}`;
+                seriesDataPromises.push(fetchData(batteryNumber));
+            }
+
+            const batteryData = await Promise.all(seriesDataPromises);
+
+            Highcharts.setOptions({
+                time: {
+                    timezoneOffset: 180 // UTC-4 em minutos
+                }
+            });
+
+            Highcharts.chart('container', {
+                chart: {
+                    zoomType: 'x',
+                    alignTicks: false
+                },
+                credits: {
+                    enabled: false
+                },
+                title: {
+                    text: `Tensão das Baterias - ${nomePack}`
+                },
+                xAxis: {
+                    type: 'datetime',
+                },
+                yAxis: [{
+                    title: {
+                        text: 'Tensão (V)'
+                    },
+                    plotLines: [{
+                        color: 'red',
+                        dashStyle: 'longdash',
+                        value: 3.10,
+                        width: 1,
+                        label: {
+                            text: 'Tensão baixa',
+                            style: {
+                                fontSize: '10px',
+                                color: 'red',
+                            }
+                        }
+                    }, {
+                        color: 'red',
+                        dashStyle: 'longdash',
+                        value: 3.8,
+                        width: 1,
+                        label: {
+                            text: 'Tensão alta',
+                            style: {
+                                fontSize: '10px',
+                                color: 'red',
+                            }
+                        }
+                    }, {
+                        color: 'green',
+                        dashStyle: 'longdash',
+                        value: 3.25,
+                        width: 1,
+                        label: {
+                            text: 'Mínimo de Balanceamento',
+                            style: {
+                                fontSize: '10px',
+                                color: 'green',
+                            }
+                        }
+                    }, {
+                        color: 'blue',
+                        dashStyle: 'longdash',
+                        value: 3.5,
+                        width: 1,
+                        label: {
+                            text: 'Tensão de Balanceamento',
+                            style: {
+                                fontSize: '10px',
+                                color: 'blue',
+                            }
+                        }
+                    }]
+                }],
+                tooltip: {
+                    xDateFormat: '%A, %d %b %Y. %H:%M:%S',
+                    shared: false,
+                    useHTML: true,
+                    headerFormat: '<table><tr><th colspan="2">{point.key}</th></tr>',
+                    pointFormat: '<tr><td style="color: {series.color}">{series.name}</td>' +
+                        '<td style="text-align: right"><b>{point.y} V</b></td></tr>',
+                    footerFormat: '</table>',
+                    valueDecimals: 2,
+                    backgroundColor: "#333333",
+                    borderradius: 20,
+                    padding: 10,
+                    style: {
+                        color: "white",
+                        fontSize: "14px",
+                        fontWeight: "bold"
+                    }
+                },
+                series: batteryData.map((data, index) => ({
+                    type: 'spline',
+                    name: `Bat ${index + 1}`,
+                    color: colors[index % colors.length],
+                    data: data,
+                    marker: {
+                        radius: 2
+                    },
+                    tooltip: {
+                        valueDecimals: 2,
+                        pointFormatter: function () {
+                            return `<tr><td style="color: ${this.color}">${this.series.name}</td>` +
+                                `<td style="text-align: right"><b>${this.y.toFixed(2)} V</b></td></tr>`;
+                        }
+                    }
+                }))
+            });
+        }
+
+        createChart();
+    </script>
+</body>
+
+</html>
